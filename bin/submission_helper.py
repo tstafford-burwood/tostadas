@@ -25,15 +25,23 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 
 def setup_logging(log_file="submission.log", level=logging.INFO):
-	if not logging.getLogger().handlers:
-		logging.basicConfig(
-			level=level,
-			format="[%(levelname)s] %(message)s",
-			handlers=[
-				logging.FileHandler(log_file, mode="a"),
-				logging.StreamHandler()
-			]
-		)
+	"""Configure logging to always write to file and stream for this process."""
+	root = logging.getLogger()
+	root.setLevel(level)
+
+	# Remove any pre-existing handlers to avoid duplicate messages / missing file handlers
+	for h in list(root.handlers):
+		root.removeHandler(h)
+
+	file_handler = logging.FileHandler(log_file, mode="a")
+	stream_handler = logging.StreamHandler()
+
+	formatter = logging.Formatter("[%(levelname)s] %(message)s")
+	file_handler.setFormatter(formatter)
+	stream_handler.setFormatter(formatter)
+
+	root.addHandler(file_handler)
+	root.addHandler(stream_handler)
 
 def symlink_or_copy(src, dst, copy=False):
 	if not os.path.exists(dst):
