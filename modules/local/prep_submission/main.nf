@@ -11,7 +11,7 @@ process PREP_SUBMISSION {
         'docker.io/staphb/tostadas:latest' : 'docker.io/staphb/tostadas:latest' }"
 
     input:
-    tuple val(meta), val(samples), val(enabledDatabases)
+    tuple val(meta), path(batch_tsv), val(samples), val(enabledDatabases)
     path(submission_config)
     
     output:
@@ -49,7 +49,7 @@ process PREP_SUBMISSION {
     submission_prep.py \
         --submission_name ${meta.batch_id} \
         --config_file $submission_config  \
-        --metadata_file ${meta.batch_tsv} \
+        --metadata_file ${batch_tsv} \
         --identifier ${params.metadata_basename} \
         --species $params.organism_type \
         --outdir  ${meta.batch_id} \

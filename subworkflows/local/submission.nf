@@ -17,7 +17,12 @@ workflow SUBMISSION {
     main:
         submission_config_file = file(submission_config)
 
-        PREP_SUBMISSION(submission_ch, submission_config_file)
+        // Stage batch_tsv into work dir by passing it as a path input
+        submission_stage_ch = submission_ch.map { meta, samples, enabledDatabases ->
+            tuple(meta, file(meta.batch_tsv), samples, enabledDatabases)
+        }
+
+        PREP_SUBMISSION(submission_stage_ch, submission_config_file)
 
         PREP_SUBMISSION.out.submission_files
             .set { submission_batch_folder }
