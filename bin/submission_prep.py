@@ -38,7 +38,13 @@ def main_prepare():
 
 	os.makedirs(params['outdir'], exist_ok=True)
 
+	# Use relative path for log file (Nextflow expects files relative to work directory)
 	log_file_path = os.path.join(params['outdir'], 'prep_submission.log')
+	# Explicitly create the log file before setting up logging
+	with open(log_file_path, 'w') as f:
+		f.write("")  # Create empty file
+		f.flush()
+		os.fsync(f.fileno())
 	setup_logging(log_file=log_file_path, level=logging.DEBUG)
 	logging.info("Started logging for preparation.")
 	
@@ -146,14 +152,51 @@ def main_prepare():
 	
 	# Ensure log file is flushed and exists before process ends
 	log_file_path = os.path.join(params['outdir'], 'prep_submission.log')
-	if not os.path.exists(log_file_path):
-		# Create empty log file if it doesn't exist
-		with open(log_file_path, 'w') as f:
-			f.write("")
-	# Flush all logging handlers
+	# Flush all logging handlers and ensure file exists
 	for handler in logging.getLogger().handlers:
 		if isinstance(handler, logging.FileHandler):
 			handler.flush()
+			# Sync to disk
+			if hasattr(handler.stream, 'flush'):
+				handler.stream.flush()
+			if hasattr(handler.stream, 'fileno'):
+				try:
+					os.fsync(handler.stream.fileno())
+				except:
+					pass
+	# Final verification - ensure file exists at expected location
+	if not os.path.exists(log_file_path):
+		# Create it if missing
+		with open(log_file_path, 'w') as f:
+			f.write("")
+			f.flush()
+			os.fsync(f.fileno())
+		logging.info(f"Created log file at {log_file_path}")
+	else:
+		logging.info(f"Log file verified at {log_file_path}")
 
 if __name__=="__main__":
-	main_prepare()
+	try:
+		main_prepare()
+	except Exception as e:
+		# Ensure log file exists even if there's an error
+		import sys
+		try:
+			params = GetParams().parameters
+			log_file_path = os.path.join(params['outdir'], 'prep_submission.log')
+			# Try to log the error
+			try:
+				logging.error(f"Error in main_prepare: {e}", exc_info=True)
+			except:
+				# If logging fails, at least create the file
+				with open(log_file_path, 'a') as f:
+					f.write(f"Error: {e}\n")
+					f.flush()
+			# Ensure file exists
+			if not os.path.exists(log_file_path):
+				with open(log_file_path, 'w') as f:
+					f.write(f"Error: {e}\n")
+					f.flush()
+		except:
+			pass  # If we can't even create the log file, just continue
+		raise  # Re-raise the exception
