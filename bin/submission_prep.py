@@ -143,6 +143,17 @@ def main_prepare():
 				identifier=identifier
 			)
 			gb.genbank_submission_driver()
+	
+	# Ensure log file is flushed and exists before process ends
+	log_file_path = os.path.join(params['outdir'], 'prep_submission.log')
+	if not os.path.exists(log_file_path):
+		# Create empty log file if it doesn't exist
+		with open(log_file_path, 'w') as f:
+			f.write("")
+	# Flush all logging handlers
+	for handler in logging.getLogger().handlers:
+		if isinstance(handler, logging.FileHandler):
+			handler.flush()
 
 if __name__=="__main__":
 	main_prepare()

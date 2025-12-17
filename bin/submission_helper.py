@@ -33,6 +33,18 @@ def setup_logging(log_file="submission.log", level=logging.INFO):
 	for h in list(root.handlers):
 		root.removeHandler(h)
 
+	# Ensure the log file directory exists and create the file immediately
+	log_dir = os.path.dirname(os.path.abspath(log_file))
+	if log_dir and not os.path.exists(log_dir):
+		os.makedirs(log_dir, exist_ok=True)
+	# Touch the file to ensure it exists
+	try:
+		with open(log_file, 'a'):
+			pass
+	except Exception as e:
+		# If we can't create the file, log to stderr and continue
+		print(f"[WARNING] Could not create log file {log_file}: {e}", file=sys.stderr)
+
 	file_handler = logging.FileHandler(log_file, mode="a")
 	stream_handler = logging.StreamHandler()
 
@@ -42,6 +54,9 @@ def setup_logging(log_file="submission.log", level=logging.INFO):
 
 	root.addHandler(file_handler)
 	root.addHandler(stream_handler)
+	
+	# Flush immediately to ensure file is written
+	file_handler.flush()
 
 def symlink_or_copy(src, dst, copy=False):
 	if not os.path.exists(dst):
